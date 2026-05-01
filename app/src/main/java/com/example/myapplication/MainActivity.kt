@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
@@ -33,7 +34,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-val buttonList = androidx.compose.runtime.mutableStateMapOf(
+var buttonList = androidx.compose.runtime.mutableStateMapOf(
     "A1" to ButtonValue(false,"", 0),
     "A2" to ButtonValue(false,"", 0),
     "A3" to ButtonValue(false,"", 0),
@@ -49,17 +50,19 @@ var moveSequence by androidx.compose.runtime.mutableIntStateOf(1)
 var playerMove by androidx.compose.runtime.mutableStateOf("X")
 
 fun nextMove(button: String){
+    Log.i("status", buttonList[button]?.status.toString())
     buttonList[button]?.status = true
     buttonList[button]?.sequence = moveSequence
+    Log.i("status", buttonList[button]?.status.toString())
 
-    if(winner()){
-        buttonList.forEach { _, value ->
-           value.sequence = 0
-           value.status = false
-           value.player = ""
-        }
+//    if(winner()){
+//        buttonList.forEach { _, value ->
+//           value.sequence = 0
+//           value.status = false
+//           value.player = ""
+//        }
 
-    } else {
+//    } else {
         moveSequence++
         if (moveSequence > 9) {
             val key = buttonList.filter { it.value.sequence != 0 }
@@ -75,7 +78,9 @@ fun nextMove(button: String){
         } else {
             playerMove = "X"
         }
-    }
+    Log.i("player", playerMove)
+    Log.i("seq", moveSequence.toString())
+//    }
 }
 
 @Composable
@@ -133,32 +138,16 @@ fun Score(player1Score: Int, player2Score: Int ){
 
 @Composable
 fun SingleButton(column: String, row: String) {
-
     val key = row + column
-    val content = buttonList[key]
-
     Button(
-        onClick = { buttonUpdate(key) },
+        onClick = { nextMove(key) },
         modifier = Modifier.size(120.dp),
         shape = RoundedCornerShape(10.dp)
     ) {
-        Text(text = content?.player ?: "")
+        Text(text = buttonList[key]?.status.toString())
     }
 }
 
-fun buttonUpdate(key: String) {
-    val thisButton = buttonList[key] ?: return
-
-    if (!thisButton.status) {
-        buttonList[key] = thisButton.copy(
-            status = true,
-            player = playerMove,
-            sequence = moveSequence
-        )
-
-        nextMove(key)
-    }
-}
 
 @Preview
 @Composable
