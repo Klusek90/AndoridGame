@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,7 +33,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-val buttonList = hashMapOf(
+val buttonList = androidx.compose.runtime.mutableStateMapOf(
     "A1" to ButtonValue(false,"", 0),
     "A2" to ButtonValue(false,"", 0),
     "A3" to ButtonValue(false,"", 0),
@@ -42,33 +45,38 @@ val buttonList = hashMapOf(
     "C3" to ButtonValue(false,"", 0)
 )
 
-var moveSequence : Int = 1
-
-var playerMove: Char = 'X'
+var moveSequence by androidx.compose.runtime.mutableIntStateOf(1)
+var playerMove by androidx.compose.runtime.mutableStateOf("X")
 
 fun nextMove(button: String){
-
-    buttonList[button]?.player = playerMove.toString()
     buttonList[button]?.status = true
     buttonList[button]?.sequence = moveSequence
-    moveSequence++
 
-    if(moveSequence > 9){
-        buttonList.forEach { (string, value) ->
+    if(winner()){
+        buttonList.forEach { _, value ->
+           value.sequence = 0
+           value.status = false
+           value.player = ""
+        }
 
+    } else {
+        moveSequence++
+        if (moveSequence > 9) {
+            val key = buttonList.filter { it.value.sequence != 0 }
+                .minByOrNull { it.value.sequence }
+                ?.key
+            buttonList[key]?.sequence = 0
+            buttonList[key]?.player = ""
+            buttonList[key]?.status = false
+        }
+
+        if (playerMove == "X") {
+            playerMove = "O"
+        } else {
+            playerMove = "X"
         }
     }
-
-    if(playerMove == 'X'){
-        playerMove == 'O'
-    } else {
-        playerMove == 'X'
-    }
 }
-//
-//fun buttonUpdate(){
-//
-//}
 
 @Composable
 fun Game() {
@@ -124,14 +132,33 @@ fun Score(player1Score: Int, player2Score: Int ){
 }
 
 @Composable
-fun SingleButton(column : String, row: String ){
-    Button(onClick = {},
+fun SingleButton(column: String, row: String) {
+
+    val key = row + column
+    val content = buttonList[key]
+
+    Button(
+        onClick = { buttonUpdate(key) },
         modifier = Modifier.size(120.dp),
-        shape = RoundedCornerShape(10.dp)) {
-        Text(text = "X")
+        shape = RoundedCornerShape(10.dp)
+    ) {
+        Text(text = content?.player ?: "")
     }
 }
 
+fun buttonUpdate(key: String) {
+    val thisButton = buttonList[key] ?: return
+
+    if (!thisButton.status) {
+        buttonList[key] = thisButton.copy(
+            status = true,
+            player = playerMove,
+            sequence = moveSequence
+        )
+
+        nextMove(key)
+    }
+}
 
 @Preview
 @Composable
@@ -139,21 +166,22 @@ fun ShowMeGame(){
     Game()
 }
 
+fun winner(): Boolean {
+    val winPatterns = listOf(
+        listOf("A1", "A2", "A3"),
+        listOf("B1", "B2", "B3"),
+        listOf("C1", "C2", "C3"),
+        listOf("A1", "B1", "C1"),
+        listOf("A2", "B2", "C2"),
+        listOf("A3", "B3", "C3"),
+        listOf("A1", "B2", "C3"),
+        listOf("A3", "B2", "C1")
+    )
 
-
-fun CheckScore(){
-//    if(
-//        (buttonList["A1"]. == true && buttonList["A2"] == true && buttonList["A3"] == true) or
-//        (buttonList["B1"] == true && buttonList["B2"] == true && buttonList["B3"] == true) or
-//        (buttonList["C1"] == true && buttonList["C2"] == true && buttonList["C3"] == true) or
-//        (buttonList["A1"] == true && buttonList["B1"] == true && buttonList["C1"] == true) or
-//        (buttonList["A2"] == true && buttonList["B2"] == true && buttonList["C2"] == true) or
-//        (buttonList["A3"] == true && buttonList["B3"] == true && buttonList["C3"] == true) or
-//        (buttonList["A1"] == true && buttonList["B2"] == true && buttonList["C3"] == true) or
-//        (buttonList["A3"] == true && buttonList["B2"] == true && buttonList["C1"] == true)) {
-//
-//
-//    }
+    return winPatterns.any { pattern ->
+        val players = pattern.mapNotNull { buttonList[it]?.player }
+        players.isNotEmpty() && players.distinct().size == 1
+    }
 }
 
 
