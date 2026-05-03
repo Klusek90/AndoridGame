@@ -16,6 +16,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 
 
 class MainActivity : ComponentActivity() {
@@ -34,7 +38,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-var buttonList = androidx.compose.runtime.mutableStateMapOf(
+var buttonList = mutableStateMapOf(
     "A1" to ButtonValue(false,"", 0),
     "A2" to ButtonValue(false,"", 0),
     "A3" to ButtonValue(false,"", 0),
@@ -46,41 +50,30 @@ var buttonList = androidx.compose.runtime.mutableStateMapOf(
     "C3" to ButtonValue(false,"", 0)
 )
 
-var moveSequence by androidx.compose.runtime.mutableIntStateOf(1)
-var playerMove by androidx.compose.runtime.mutableStateOf("X")
+var moveSequence by mutableIntStateOf(1)
+var playerMove= "X"
+
+var player1Score :Int by mutableStateOf(0)
+var player2Score :Int by mutableStateOf(0)
+
 
 fun nextMove(button: String){
-    Log.i("status", buttonList[button]?.status.toString())
-    buttonList[button]?.status = true
-    buttonList[button]?.sequence = moveSequence
-    Log.i("status", buttonList[button]?.status.toString())
+    val current = buttonList[button] ?: return
 
-//    if(winner()){
-//        buttonList.forEach { _, value ->
-//           value.sequence = 0
-//           value.status = false
-//           value.player = ""
-//        }
-
-//    } else {
-        moveSequence++
-        if (moveSequence > 9) {
-            val key = buttonList.filter { it.value.sequence != 0 }
-                .minByOrNull { it.value.sequence }
-                ?.key
-            buttonList[key]?.sequence = 0
-            buttonList[key]?.player = ""
-            buttonList[key]?.status = false
+    if (!current.status){
+        buttonList[button] = current.copy(
+            status = true,
+            sequence = moveSequence,
+            player = playerMove
+        )
+        if (winner()){
+            addScore()
+        }else {
+            moveSequence++
         }
 
-        if (playerMove == "X") {
-            playerMove = "O"
-        } else {
-            playerMove = "X"
-        }
-    Log.i("player", playerMove)
-    Log.i("seq", moveSequence.toString())
-//    }
+        playerMove = if (playerMove == "X") "O" else "X"
+    }
 }
 
 @Composable
@@ -90,7 +83,7 @@ fun Game() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ){
-        Score(10,20)
+        Score(player1Score,player2Score)
         ButtonRow("A")
         ButtonRow("B")
         ButtonRow("C")
@@ -144,7 +137,7 @@ fun SingleButton(column: String, row: String) {
         modifier = Modifier.size(120.dp),
         shape = RoundedCornerShape(10.dp)
     ) {
-        Text(text = buttonList[key]?.status.toString())
+        Text(text = buttonList[key]?.player ?: "", fontSize = 15.em)
     }
 }
 
@@ -167,9 +160,29 @@ fun winner(): Boolean {
         listOf("A3", "B2", "C1")
     )
 
+
     return winPatterns.any { pattern ->
         val players = pattern.mapNotNull { buttonList[it]?.player }
-        players.isNotEmpty() && players.distinct().size == 1
+
+        players.size == 3 &&
+                players.first().isNotEmpty() &&
+                players.distinct().size == 1
+    }
+}
+
+fun addScore(){
+    if(playerMove.equals("X")){
+        player1Score++
+    } else {
+        player2Score++
+    }
+
+    buttonList.forEach { (key, value) ->
+        buttonList[key] = value.copy(
+            status = false,
+            player = "",
+            sequence = 0
+        )
     }
 }
 
